@@ -3,20 +3,21 @@ from typing import List
 import pandas as pd
 
 from account import Account
+from datastream import *
 
 
 class Brokerage:
-    def __init__(self, df_data: pd.DataFrame, accounts: List[Account], t: int=0):
-        self.df_data = df_data
+    def __init__(self, datastream: DataStream, accounts: List[Account]):
+        self.datastream = datastream
         self.accounts = accounts
         self.orders = dict()
-        self.t = t
     
     def __next__(self):
+        data = next(self.datastream)
         for id_account, account in self.accounts.items():
-            for id_asset in self.df_data.columns:
+            for id_asset in self.datastream.ids_asset:
                 # gets current price
-                price = self.df_data[id_asset][self.t]
+                price = data[id_asset]
                 
                 # process orders if exists
                 if (id_account, id_asset) in self.orders:
@@ -40,9 +41,6 @@ class Brokerage:
                 
                 # updates account
                 account.update_position(id_asset, n, price)
-        
-        # increments time index
-        self.t += 1
     
     def add_order(self, id_account, id_asset, id_order, type, n, price=None):
         if type == 'limit':
